@@ -526,3 +526,4 @@ async fn main() {
     println!("   export NEWSAPI_KEY=...       \u{2014} set your NewsAPI key");
     println!("   export MEMORY_API_URL=...    \u{2014} set memory API URL (default: http://localhost:3111)");
 }
+// ci-trigger
