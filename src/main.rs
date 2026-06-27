@@ -301,17 +301,30 @@ async fn scrape_article(client: &Client, url: &str) -> Result<String, String> {
         .map_err(|_| format!("Failed to fetch {}", url))?;
 
     if !resp.status().is_success() {
-        eprintln!("     \u{26a0}\u{fe0f}  Scrape returned {} \u{2014} skipping", resp.status());
+        eprintln!(
+            "     \u{26a0}\u{fe0f}  Scrape returned {} \u{2014} skipping",
+            resp.status()
+        );
         return Ok(String::new());
     }
 
-    let html = resp.text().await.map_err(|_| "Failed to read body".to_string())?;
+    let html = resp
+        .text()
+        .await
+        .map_err(|_| "Failed to read body".to_string())?;
     let document = scraper::Html::parse_document(&html);
 
     let content_selectors = [
-        "article", "[role='main']", "main", ".article-content",
-        ".post-content", ".entry-content", ".story-body",
-        "#article-body", ".content-body", "body",
+        "article",
+        "[role='main']",
+        "main",
+        ".article-content",
+        ".post-content",
+        ".entry-content",
+        ".story-body",
+        "#article-body",
+        ".content-body",
+        "body",
     ];
 
     let mut text_parts: Vec<String> = Vec::new();
@@ -361,25 +374,26 @@ fn display_article(i: usize, entry: &KnowledgeEntry) {
     println!("     \u{2502} \u{1f4f0} {}", entry.title);
     println!("     \u{2502} \u{1f3f7}\u{fe0f}  {}", entry.source_label);
     if !entry.summary.is_empty() {
-        println!("     \u{2502} \u{1f4dd} {}", &entry.summary.chars().take(120).collect::<String>());
+        println!(
+            "     \u{2502} \u{1f4dd} {}",
+            &entry.summary.chars().take(120).collect::<String>()
+        );
     }
     if !entry.article_url.is_empty() {
         println!("     \u{2502} \u{1f517} {}", entry.article_url);
     }
     if !entry.signals.is_empty() {
-        println!("     \u{2502} \u{1f4ca} Signals: {}", entry.signals.join(", "));
+        println!(
+            "     \u{2502} \u{1f4ca} Signals: {}",
+            entry.signals.join(", ")
+        );
     }
     println!("     \u{2514}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}");
 }
 
 // ── Research Orchestrator ───────────────────────────────────────────────────
 
-async fn research_symbol(
-    client: &Client,
-    api_key: &str,
-    memory: &MemoryApiClient,
-    symbol: &str,
-) {
+async fn research_symbol(client: &Client, api_key: &str, memory: &MemoryApiClient, symbol: &str) {
     println!("\u{2500}\u{2500}\u{2500} {} \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}", symbol);
 
     let articles = match fetch_market_news(client, api_key, symbol).await {
@@ -395,7 +409,10 @@ async fn research_symbol(
         return;
     }
 
-    println!("  \u{1f4f0} {} article(s) found. Scraping\u{2026}", articles.len());
+    println!(
+        "  \u{1f4f0} {} article(s) found. Scraping\u{2026}",
+        articles.len()
+    );
 
     let scrape_tasks: Vec<_> = articles
         .iter()
@@ -461,14 +478,18 @@ async fn main() {
     };
 
     // \u{2500}\u{2500} Memory API Client \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}
-    let memory_url = std::env::var("MEMORY_API_URL").unwrap_or_else(|_| "http://localhost:3111".to_string());
+    let memory_url =
+        std::env::var("MEMORY_API_URL").unwrap_or_else(|_| "http://localhost:3111".to_string());
     let memory = MemoryApiClient::new(&memory_url);
     println!("\u{2705} Memory API client configured: {}", memory_url);
 
     // Quick health check
     match memory.get_stats().await {
         Ok(stats) => {
-            println!("   \u{2139}\u{fe0f}  Memory reports {} existing records", stats.total_records);
+            println!(
+                "   \u{2139}\u{fe0f}  Memory reports {} existing records",
+                stats.total_records
+            );
         }
         Err(e) => {
             eprintln!("\u{26a0}\u{fe0f}  Could not reach memory API: {}", e);
@@ -487,7 +508,12 @@ async fn main() {
     // \u{2500}\u{2500} Symbols to Research \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}
     let symbols: Vec<String> = std::env::args().skip(1).collect();
     let symbols = if symbols.is_empty() {
-        vec!["AAPL".to_string(), "SPY".to_string(), "BTC".to_string(), "TSLA".to_string()]
+        vec![
+            "AAPL".to_string(),
+            "SPY".to_string(),
+            "BTC".to_string(),
+            "TSLA".to_string(),
+        ]
     } else {
         symbols
     };
@@ -508,7 +534,10 @@ async fn main() {
 
     match memory.get_stats().await {
         Ok(stats) => {
-            println!("\u{1f4ca} Total knowledge entries in memory: {}", stats.total_records);
+            println!(
+                "\u{1f4ca} Total knowledge entries in memory: {}",
+                stats.total_records
+            );
             let sources: Vec<&String> = stats.content_types.keys().collect();
             if !sources.is_empty() {
                 println!("   Content types: {}", sources.iter().join(", "));
@@ -521,7 +550,9 @@ async fn main() {
     println!("\u{2705} Knowledge research complete.");
     println!();
     println!("\u{1f4a1} Usage:");
-    println!("   knowledge                    \u{2014} research default symbols (AAPL, SPY, BTC, TSLA)");
+    println!(
+        "   knowledge                    \u{2014} research default symbols (AAPL, SPY, BTC, TSLA)"
+    );
     println!("   knowledge AAPL GOOGL MSFT    \u{2014} research specific symbols");
     println!("   export NEWSAPI_KEY=...       \u{2014} set your NewsAPI key");
     println!("   export MEMORY_API_URL=...    \u{2014} set memory API URL (default: http://localhost:3111)");
